@@ -21,10 +21,10 @@ try {
 // Generar respuesta de ChatGPT
 export const generateChatResponse = async (req, res) => {
   try {
-    const { prompt, userId } = req.body;
+    const { prompt } = req.body;
 
-    if (!prompt || !userId) {
-      return res.status(400).json({ error: 'El prompt y el userId son requeridos' });
+    if (!prompt) {
+      return res.status(400).json({ error: 'El prompt es requerido' });
     }
 
     if (!openai) {
@@ -34,52 +34,26 @@ export const generateChatResponse = async (req, res) => {
       });
     }
 
-    // Obtener el historial de conversación del usuario
-    const conversationHistory = await Conversation.find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(5); // Últimas 5 conversaciones para contexto
-
-    // Construir el contexto de la conversación
-    const context = conversationHistory
-      .reverse() // Invertir para tener el orden cronológico
-      .map(conv => `Usuario: ${conv.prompt}\nAndreix: ${conv.response}`)
-      .join('\n\n');
-
-    // Llamada a la API de OpenAI con modelo gpt-4 y contexto
+    // Llamada a la API de OpenAI con modelo gpt-4o para respuestas más avanzadas
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         { 
           role: "system", 
-          content: `Eres Andreix, un asistente virtual gamer especializado en ayudar con la compra y venta de dispositivos electrónicos para videojuegos 🎮. 
-          
-          Características principales:
-          - Atiendes solicitudes sobre consolas, PCs gamers, portátiles, monitores, mandos y más 🖥️🕹️
-          - Tus respuestas son concisas (máximo 100 palabras), claras y siempre incluyen emojis 🎯
-          - Usas párrafos cortos para facilitar la lectura
-          - Hablas de forma amigable y profesional
-          - Haces preguntas clave para entender mejor lo que el usuario necesita 💬
-          - Siempre estás listo para recomendar, cotizar o ayudar a publicar un producto 🚀
-          
-          Contexto de la conversación anterior:
-          ${context}
-          
-          Recuerda que debes mantener el contexto de la conversación y referirte a preguntas anteriores cuando sea relevante.`
+          content: "Eres Andreix, un asistente virtual gamer especializado en ayudar con la compra y venta de dispositivos electrónicos para videojuegos 🎮. Atiendes solicitudes sobre consolas, PCs gamers, portátiles, monitores, mandos y más 🖥️🕹️. Tus respuestas son concisas (máximo 100 palabras), claras y siempre incluyen emojis 🎯. Usa párrafos cortos para facilitar la lectura. Hablas de forma amigable y profesional, y haces preguntas clave para entender mejor lo que el usuario necesita 💬. Siempre estás listo para recomendar, cotizar o ayudar a publicar un producto. 🚀" 
         },
         { role: "user", content: prompt }
       ],
-      max_tokens: 300,
-      temperature: 0.7,
+      max_tokens: 300, // Limitar tokens para respuestas más cortas
+      temperature: 0.7, // Mantener algo de creatividad
     });
 
     const response = completion.choices[0].message.content;
 
     // Guardar la conversación en la base de datos
     const conversation = new Conversation({
-      userId,
       prompt,
       response,
-      context
     });
 
     await conversation.save();
@@ -94,19 +68,10 @@ export const generateChatResponse = async (req, res) => {
   }
 };
 
-// Obtener historial de conversaciones por usuario
+// Obtener historial de conversaciones
 export const getConversationHistory = async (req, res) => {
   try {
-    const { userId } = req.params;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'El userId es requerido' });
-    }
-
-    const conversations = await Conversation.find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(20); // Últimas 20 conversaciones
-
+    const conversations = await Conversation.find().sort({ createdAt: -1 }).limit(10);
     res.json(conversations);
   } catch (error) {
     console.error('Error al obtener el historial:', error);
