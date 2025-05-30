@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import mongoose from 'mongoose';
 import { router as chatRoutes } from './routes/chatRoutes.js';
 import fs from 'fs';
 import path from 'path';
@@ -30,18 +29,19 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5002;
+
+// Configuración de CORS
+const corsOptions = {
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3002'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
-
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://enzoaguino01@admin:Qu9xpNsmRmVPeE6O@cluster0.g4gsp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
-
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ MongoDB conectado'))
-  .catch(err => console.error('❌ Error de conexión a MongoDB:', err));
 
 // Rutas
 app.use('/api/chat', chatRoutes);
@@ -49,12 +49,13 @@ app.use('/api/chat', chatRoutes);
 // Ruta para probar el servidor
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'API de ChatGPT funcionando correctamente',
-    status: 'OpenAI configurado con clave fija en el controlador'
+    message: 'API de Asistente Explicador funcionando correctamente',
+    status: 'OpenAI configurado y listo para explicar conceptos'
   });
 });
 
 // Iniciar el servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
+  console.log(`🌐 CORS habilitado para: http://localhost:3000`);
 });
