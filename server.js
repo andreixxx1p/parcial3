@@ -90,6 +90,15 @@ app.use((req, res, next) => {
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI;
 
+if (!MONGODB_URI) {
+  console.error('❌ Error: No se encontró la variable MONGODB_URI');
+  console.log('📝 Para configurar MongoDB:');
+  console.log('1. Asegúrate de tener un archivo .env');
+  console.log('2. Añade la línea: MONGODB_URI=tu-url-de-mongodb');
+  console.log('3. Reinicia el servidor');
+  process.exit(1);
+}
+
 console.log('🔍 Intentando conectar a MongoDB...');
 console.log('📡 URL de conexión:', MONGODB_URI.replace(/\/\/[^:]+:[^@]+@/, '//<credentials>@')); // Oculta las credenciales en el log
 
@@ -100,8 +109,6 @@ mongoose.connect(MONGODB_URI, {
     console.log('✅ MongoDB conectado exitosamente');
     console.log(`📦 Base de datos: ${MONGODB_URI.includes('localhost') ? 'Local' : 'Atlas'}`);
     console.log('🔌 Estado de la conexión:', mongoose.connection.readyState);
-    console.log("📝 Prompt recibido:", prompt);
-    onsole.log("👤 Usuario:", user);
   })
   .catch(err => {
     console.error('❌ Error de conexión a MongoDB:', err.message);

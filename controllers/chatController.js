@@ -101,13 +101,25 @@ export const generateChatResponse = async (req, res) => {
     const response = completion.choices[0].message.content;
 
     // Guardar la pregunta y respuesta en MongoDB
+    console.log('💾 Intentando guardar en MongoDB:', {
+      user,
+      question: prompt,
+      answer: response
+    });
+
     const question = new Question({
       user,
       question: prompt,
       answer: response
     });
 
-    await question.save();
+    try {
+      const savedQuestion = await question.save();
+      console.log('✅ Pregunta guardada exitosamente:', savedQuestion._id);
+    } catch (saveError) {
+      console.error('❌ Error al guardar en MongoDB:', saveError);
+      // Continuamos con la respuesta aunque falle el guardado
+    }
 
     res.json({ response });
   } catch (error) {
