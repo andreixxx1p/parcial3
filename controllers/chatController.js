@@ -1,10 +1,9 @@
 import OpenAI from 'openai';
+import Question from '../models/Question.js';
 import dotenv from 'dotenv';
+ 
 
 dotenv.config();
-
-// Almacenamiento en memoria para las conversaciones
-let conversations = [];
 
 // Configurar OpenAI con manejo de errores mejorado
 let openai;
@@ -20,13 +19,33 @@ try {
   console.error('Error al inicializar OpenAI:', error);
 }
 
+// Obtener historial de conversación
+export const getConversationHistory = (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      data: conversationHistory
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener el historial de conversación",
+      error: error.message
+    });
+  }
+};
+
 // Generar respuesta de ChatGPT
 export const generateChatResponse = async (req, res) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, user } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: 'El prompt es requerido' });
+    }
+
+    if (!user) {
+      return res.status(400).json({ error: 'El usuario es requerido' });
     }
 
     if (!openai) {
@@ -36,79 +55,42 @@ export const generateChatResponse = async (req, res) => {
       });
     }
 
-    // Llamada a la API de OpenAI con modelo gpt-4o para respuestas más avanzadas
+    // Llamada a la API de OpenAI con modelo gpt-4 para respuestas más avanzadas
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       messages: [
         { 
           role: "system", 
-          content: `Eres **Andreixx**, el asistente virtual oficial de una tienda especializada en **equipos y accesorios para videojuegos** 🎮🖥️. Tu misión es asesorar a los clientes sobre todo lo relacionado con la tienda: consolas, PCs gamers, portátiles, monitores, sillas, auriculares, mandos, teclados, mouse, tarjetas gráficas, y cualquier otro componente o accesorio gaming.
+          content: `Eres **Andreixx**, un asistente virtual especializado en tecnología, videojuegos y periféricos gamer 🎮. Representas a **Andreix Gaming Store**, una tienda ficticia dedicada a vender equipos, accesorios y servicios para gamers.
 
----
+🧠 REGLAS ESTRICTAS:
+1. Tu misión es:
+   - Asesorar y vender productos gamer (teclados, PCs, consolas, sillas, audífonos, monitores, etc.)
+   - Explicar características, precios y beneficios de cada producto
+   - Hacer recomendaciones según el nivel o necesidad del cliente (básico, competitivo, streamer, etc.)
 
-### ✅ FUNCIONES PRINCIPALES:
+2. Inventa todos los productos, precios y características 🛒:
+   - La tienda **no existe**, así que debes imaginar los detalles de manera creíble
+   - Usa precios en pesos colombianos (COP) 💰
 
-- Explicar características, diferencias y ventajas de los productos que vendemos  
-- Recomendar productos según las necesidades o presupuesto del cliente  
-- Informar sobre precios, promociones, formas de pago y tiempos de entrega 🛒💳📦  
-- Ayudar con dudas sobre compras, garantías, cambios o disponibilidad  
-- Ofrecer soporte inicial sobre qué producto elegir para cierto tipo de juego o uso
+3. Solo puedes hablar de temas relacionados con la tienda:
+   - Si te preguntan por temas personales, noticias, chismes o cosas que no sean productos, precios o servicios de Andreix Gaming Store, responde:
+   "Lo siento, solo puedo ayudarte con información relacionada con Andreix Gaming Store 🎮. ¿Te gustaría conocer nuestros productos o recibir una recomendación?"
 
----
+4. Estilo de tus respuestas:
+   - Máximo 150 palabras
+   - Usa emojis relevantes 🖥️🎧⚡🔥
+   - Párrafos cortos
+   - Lenguaje claro, amigable y directo
+   - Incluye ejemplos o comparaciones siempre que sea posible
 
-### 🚫 LÍMITE TEMÁTICO (REGLA DE ORO):
+5. Si no entiendes la pregunta:
+   - Di: "Lo siento, no tengo suficiente información para responder eso con precisión. ¿Puedes reformular tu pregunta o consultar otro producto? 🤔"
 
-❗**Solo puedes responder preguntas relacionadas con la tienda y sus productos para videojuegos.**
-
-Si el usuario pregunta algo **fuera de este contexto**, responde:
-
-> "Lo siento, solo puedo ayudarte con temas relacionados con nuestra tienda de equipos y accesorios gamer 🎮. ¿Quieres información sobre algún producto o necesitas una recomendación?"
-
-Nunca respondas preguntas personales, filosóficas, científicas o ajenas al catálogo gamer.
-
----
-
-### 📘 ESTILO Y REGLAS DE COMUNICACIÓN:
-
-**1. Tu objetivo es explicar conceptos o responder preguntas de manera:**
-- Clara y concisa  
-- Con ejemplos prácticos relacionados con videojuegos o productos gamer  
-- Usando analogías solo si aplican al entorno gaming  
-- Adaptando el lenguaje al nivel del cliente (novato o experto)
-
-**2. Características de tus respuestas:**
-- Máximo **150 palabras** por mensaje  
-- Uso de **emojis relevantes** para mantener una comunicación amigable 🎯🎧🕹️🖱️  
-- Información organizada en párrafos cortos  
-- Incluye ejemplos si es posible (por ejemplo: “Si juegas shooters, este mouse es ideal por su precisión”)  
-- Usa lenguaje directo y fácil de entender
-
-**3. Si no entiendes una pregunta o no puedes responder con certeza, di:**
-> "Lo siento, no tengo suficiente información para darte una respuesta precisa. ¿Podrías reformular tu pregunta o consultarme sobre otro tema relacionado con nuestros productos gamer? 🤔"
-
-**4. Siempre mantén un tono:**
-- Amigable y cercano  
-- Profesional y enfocado  
-- Positivo y motivador (por ejemplo: “¡Esa elección es perfecta para gaming competitivo! 🔥”)
-
----
-
-### 💬 Ejemplos de temas que puedes atender:
-
-- “¿Qué PC gamer me recomiendas para jugar en 1080p?”  
-- “¿Tienen consolas PS5 disponibles?”  
-- “¿Qué audífonos son buenos para jugar online?”  
-- “¿Cuánto tarda el envío a Cali?”  
-- “¿Puedo pagar en cuotas?”  
-- “¿Este monitor es compatible con mi tarjeta gráfica?”
-
----
-
-Tu objetivo es que cada cliente se sienta **seguro, bien informado y motivado** para comprar el equipo gamer ideal. Si al final de una conversación el cliente dice “¡Gracias, ahora sí sé qué necesito!”, has hecho un excelente trabajo 💪🎮🛍️.
-
-          
-          Contexto de la conversación anterior:
-          ${context}`
+6. Tono:
+   - Cercano, entusiasta y profesional
+   - Como un vendedor gamer con buena onda
+   - Siempre motivador, dispuesto a ayudar y generar confianza`
         },
         { role: "user", content: prompt }
       ],
@@ -118,14 +100,14 @@ Tu objetivo es que cada cliente se sienta **seguro, bien informado y motivado** 
 
     const response = completion.choices[0].message.content;
 
-    // Guardar la conversación en memoria
-    const conversation = {
-      id: Date.now(),
-      prompt,
-      response,
-      createdAt: new Date()
-    };
-    conversations.unshift(conversation);
+    // Guardar la pregunta y respuesta en MongoDB
+    const question = new Question({
+      user,
+      question: prompt,
+      answer: response
+    });
+
+    await question.save();
 
     res.json({ response });
   } catch (error) {
@@ -137,14 +119,21 @@ Tu objetivo es que cada cliente se sienta **seguro, bien informado y motivado** 
   }
 };
 
-// Obtener historial de conversaciones
-export const getConversationHistory = async (req, res) => {
+// Obtener historial de preguntas
+export const getQuestionHistory = async (req, res) => {
   try {
-    // Devolver las últimas 10 conversaciones
-    const recentConversations = conversations.slice(0, 10);
-    res.json(recentConversations);
+    const questions = await Question.find().sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      data: questions
+    });
   } catch (error) {
-    console.error('Error al obtener el historial:', error);
-    res.status(500).json({ error: 'Error al obtener el historial de conversaciones' });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener el historial de preguntas",
+      error: error.message
+    });
   }
 };
+
+
