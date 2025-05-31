@@ -41,7 +41,8 @@ const corsOptions = {
       'http://localhost:5000',
       'http://127.0.0.1:3002',
       'http://127.0.0.1:3000',
-      'http://127.0.0.1:5000'
+      'http://127.0.0.1:5000',
+      'https://parcials.vercel.app'
     ];
     // Permite solicitudes sin origen (como aplicaciones móviles o curl)
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
